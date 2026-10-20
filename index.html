@@ -64,33 +64,51 @@
     align-items: center;
     margin-bottom: 6px;
   }
+  .title-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
   .game-title {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 900;
     color: #38bdf8;
     letter-spacing: 0.5px;
   }
+  .sound-btn {
+    background: #1e293b;
+    border: 1px solid #38bdf8;
+    color: #f8fafc;
+    border-radius: 8px;
+    padding: 3px 8px;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+  }
   .stats-row {
     display: flex;
-    gap: 6px;
+    gap: 5px;
   }
   .stat-card {
     background: #1e293b;
     border: 1px solid #334155;
     border-radius: 8px;
-    padding: 3px 10px;
+    padding: 2px 8px;
     text-align: center;
-    min-width: 68px;
+    min-width: 58px;
   }
   .stat-label {
-    font-size: 9px;
+    font-size: 8px;
     color: #94a3b8;
     text-transform: uppercase;
   }
   .stat-val {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 800;
     color: #4ade80;
+  }
+  .streak-val {
+    color: #fb923c;
   }
 
   /* Target Box with Hint & Skip Buttons */
@@ -148,7 +166,7 @@
     font-weight: 700;
     cursor: pointer;
   }
-  .hint-btn:active, .skip-btn:active {
+  .hint-btn:active, .skip-btn:active, .sound-btn:active {
     transform: scale(0.94);
   }
 
@@ -220,6 +238,32 @@
     stroke: #ff0000 !important;
     stroke-width: 1.5px !important;
     r: 7.5px !important;
+  }
+
+  /* Floating Score Popup */
+  .pop-score {
+    position: absolute;
+    font-weight: 900;
+    font-size: 18px;
+    pointer-events: none;
+    z-index: 40;
+    animation: floatUp 0.75s ease-out forwards;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+  }
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translate(-50%, 0) scale(0.8); }
+    50% { transform: translate(-50%, -22px) scale(1.15); }
+    100% { opacity: 0; transform: translate(-50%, -40px) scale(1); }
+  }
+
+  /* Confetti Canvas */
+  #fx-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 35;
   }
 
   /* Bottom Watermark */
@@ -351,8 +395,15 @@
   <!-- Header -->
   <div class="header-panel">
     <div class="top-row">
-      <div class="game-title">🇮🇳 INDIA MAP PRO</div>
+      <div class="title-area">
+        <div class="game-title">🇮🇳 INDIA MAP PRO</div>
+        <button class="sound-btn" id="sound-toggle" onclick="toggleAudio()">🔊 Music</button>
+      </div>
       <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Streak</div>
+          <div class="stat-val streak-val" id="streak-val">🔥0</div>
+        </div>
         <div class="stat-card">
           <div class="stat-label">Found</div>
           <div class="stat-val" id="found-val">0/36</div>
@@ -371,7 +422,7 @@
       </div>
       <div class="btn-group">
         <button class="hint-btn" onclick="useHint()">💡 Hint</button>
-        <button class="skip-btn" onclick="nextQuestion()">Skip ⏭️</button>
+        <button class="skip-btn" onclick="skipQuestion()">Skip ⏭️</button>
       </div>
     </div>
   </div>
@@ -379,6 +430,7 @@
   <!-- Map Area -->
   <div class="map-wrapper" id="map-wrapper">
     <div id="toast"></div>
+    <canvas id="fx-canvas"></canvas>
     <div id="map-canvas"></div>
     <div class="bottom-watermark">⚡ by RANJEET SINGH</div>
 
@@ -406,9 +458,177 @@
   let score = 0;
   let foundCount = 0;
   let totalCount = 0;
+  let streak = 0;
   let hintTimer = null;
 
-  // Ultra-Smooth 60FPS Matrix Transform Engine
+  /* =========================================================
+     🎵 BUILT-IN WEB AUDIO SYNTHESIZER (SFX + BGM, Zero Lag) 🎵
+     ========================================================= */
+  let audioCtx = null;
+  let soundEnabled = true;
+  let bgmInterval = null;
+  let bgmStep = 0;
+  // Catchy Arcade Melody Notes (Hz)
+  const melodyNotes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 293.66, 349.23, 440.00, 349.23];
+
+  function unlockAudio() {
+    if (!audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContext();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    if (soundEnabled && !bgmInterval) {
+      startBGM();
+    }
+  }
+
+  function playTone(freq, type, duration, vol = 0.12, delay = 0) {
+    if (!soundEnabled || !audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime + delay);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(audioCtx.currentTime + delay);
+    osc.stop(audioCtx.currentTime + delay + duration);
+  }
+
+  function startBGM() {
+    if (bgmInterval) clearInterval(bgmInterval);
+    bgmInterval = setInterval(() => {
+      if (!soundEnabled || !audioCtx || audioCtx.state !== 'running') return;
+      const note = melodyNotes[bgmStep % melodyNotes.length];
+      playTone(note, 'sine', 0.28, 0.025, 0);
+      bgmStep++;
+    }, 380);
+  }
+
+  function sfxCorrect() {
+    unlockAudio();
+    // Upward Winning Coin Chime
+    playTone(523.25, 'triangle', 0.12, 0.18, 0);
+    playTone(659.25, 'triangle', 0.12, 0.18, 0.08);
+    playTone(783.99, 'triangle', 0.15, 0.18, 0.16);
+    playTone(1046.50, 'sine', 0.30, 0.22, 0.24);
+  }
+
+  function sfxWrong() {
+    unlockAudio();
+    // Error Buzz + Mobile Vibrate
+    playTone(170, 'sawtooth', 0.18, 0.16, 0);
+    playTone(130, 'sawtooth', 0.25, 0.18, 0.14);
+    if (navigator.vibrate) navigator.vibrate(120);
+  }
+
+  function sfxHint() {
+    unlockAudio();
+    playTone(600, 'sine', 0.1, 0.12, 0);
+    playTone(900, 'sine', 0.2, 0.14, 0.09);
+  }
+
+  function sfxClick() {
+    unlockAudio();
+    playTone(420, 'sine', 0.07, 0.09, 0);
+  }
+
+  function sfxWinFanfare() {
+    unlockAudio();
+    const notes = [523.25, 659.25, 783.99, 1046.50, 783.99, 1046.50];
+    notes.forEach((n, i) => playTone(n, 'triangle', 0.22, 0.2, i * 0.14));
+  }
+
+  function toggleAudio() {
+    unlockAudio();
+    soundEnabled = !soundEnabled;
+    const btn = document.getElementById('sound-toggle');
+    if (soundEnabled) {
+      btn.textContent = "🔊 Music";
+      btn.style.borderColor = "#38bdf8";
+      startBGM();
+      sfxClick();
+    } else {
+      btn.textContent = "🔇 Mute";
+      btn.style.borderColor = "#64748b";
+      if (bgmInterval) { clearInterval(bgmInterval); bgmInterval = null; }
+    }
+  }
+
+  // Unlock audio on first touch anywhere
+  window.addEventListener('pointerdown', () => unlockAudio(), { once: true });
+
+  /* =========================================================
+     🎆 CONFETTI & FLOATING SCORE POPUP ENGINE 🎆
+     ========================================================= */
+  const fxCanvas = document.getElementById('fx-canvas');
+  const fxCtx = fxCanvas.getContext('2d');
+  let particles = [];
+  let animFrame = null;
+
+  function resizeFxCanvas() {
+    fxCanvas.width = mapWrapper.clientWidth;
+    fxCanvas.height = mapWrapper.clientHeight;
+  }
+  window.addEventListener('resize', resizeFxCanvas);
+
+  function burstConfetti(x, y) {
+    resizeFxCanvas();
+    const colors = ['#22c55e', '#fbbf24', '#38bdf8', '#f43f5e', '#a855f7', '#ffffff'];
+    for (let i = 0; i < 24; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 2 + Math.random() * 5.5;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 2,
+        size: 4 + Math.random() * 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        life: 1
+      });
+    }
+    if (!animFrame) updateParticles();
+  }
+
+  function updateParticles() {
+    fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+    particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.22; // gravity
+      p.life -= 0.028;
+      fxCtx.globalAlpha = Math.max(0, p.life);
+      fxCtx.fillStyle = p.color;
+      fxCtx.fillRect(p.x, p.y, p.size, p.size);
+    });
+    particles = particles.filter(p => p.life > 0);
+    if (particles.length > 0) {
+      animFrame = requestAnimationFrame(updateParticles);
+    } else {
+      fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+      animFrame = null;
+    }
+  }
+
+  function showScorePopup(x, y, text, color) {
+    const pop = document.createElement('div');
+    pop.className = 'pop-score';
+    pop.textContent = text;
+    pop.style.left = x + 'px';
+    pop.style.top = y + 'px';
+    pop.style.color = color;
+    mapWrapper.appendChild(pop);
+    setTimeout(() => pop.remove(), 750);
+  }
+
+  /* =========================================================
+     🚀 60FPS MATRIX TRANSFORM & MAP ENGINE 🚀
+     ========================================================= */
   let scale = 1, tx = 0, ty = 0;
   let isDragging = false, startX = 0, startY = 0, moved = false;
   let pinchDist = 0, startScale = 1, pinchMidX = 0, pinchMidY = 0;
@@ -443,16 +663,17 @@
   }
 
   function zoomCenter(factor) {
+    sfxClick();
     const rect = mapWrapper.getBoundingClientRect();
     zoomAtPoint(scale * factor, rect.width / 2, rect.height / 2);
   }
 
   function resetZoom() {
+    sfxClick();
     scale = 1; tx = 0; ty = 0;
     renderTransform();
   }
 
-  // Zero-Latency Touch Events
   mapWrapper.addEventListener('touchstart', (e) => {
     if (e.target.closest('.zoom-controls')) return;
     if (e.touches.length === 1) {
@@ -523,197 +744,4 @@
   ];
 
   function project(lon, lat) {
-    const x = (lon - 67.8) * 18.2;
-    const y = (37.6 - lat) * 18.8;
-    return [x, y];
-  }
-
-  // High-Speed Path Builder
-  function buildFastCrispPath(geom) {
-    let d = "";
-    const polys = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
-    for (let p = 0; p < polys.length; p++) {
-      const rings = polys[p];
-      for (let r = 0; r < rings.length; r++) {
-        const ring = rings[r];
-        let lastX = -9999, lastY = -9999, count = 0;
-        let ringStr = "";
-        for (let i = 0; i < ring.length; i++) {
-          const [x, y] = project(ring[i][0], ring[i][1]);
-          if (i === 0 || i === ring.length - 1 || Math.hypot(x - lastX, y - lastY) >= 0.65) {
-            ringStr += (count === 0 ? "M" : "L") + x.toFixed(1) + "," + y.toFixed(1);
-            lastX = x; lastY = y;
-            count++;
-          }
-        }
-        if (count > 2) d += ringStr + "Z";
-      }
-    }
-    return d;
-  }
-
-  async function initMap() {
-    for (const url of mapSources) {
-      try {
-        const res = await fetch(url);
-        if (!res.ok) continue;
-        const geojson = await res.json();
-        renderGeoJson(geojson);
-        return;
-      } catch (err) {}
-    }
-    document.getElementById('target-name').textContent = "Check Internet & Refresh";
-  }
-
-  function renderGeoJson(geojson) {
-    const svgNS = "http://www.w3.org/2000/svg";
-    const svg = document.createElementNS(svgNS, "svg");
-    svg.setAttribute("viewBox", "0 0 545 585");
-
-    const stateSet = new Set();
-    const stateMap = new Map();
-
-    geojson.features.forEach((f) => {
-      let name = f.properties.ST_NM || f.properties.NAME_1 || f.properties.name;
-      if (!name) return;
-
-      if (name.includes("Andaman")) name = "Andaman and Nicobar Islands";
-      if (name.includes("Dadra") || name.includes("Daman")) name = "Dadra and Nagar Haveli and Daman and Diu";
-      if (name === "NCT of Delhi") name = "Delhi";
-      if (name === "Orissa") name = "Odisha";
-      if (name === "Uttaranchal") name = "Uttarakhand";
-
-      const pathData = buildFastCrispPath(f.geometry);
-      if (!pathData) return;
-
-      const path = document.createElementNS(svgNS, "path");
-      path.setAttribute("d", pathData);
-
-      path.addEventListener('click', (e) => {
-        if (moved) return;
-        e.stopPropagation();
-        checkAnswer(name);
-      });
-
-      svg.appendChild(path);
-      stateSet.add(name);
-      if (!stateMap.has(name)) stateMap.set(name, []);
-      stateMap.get(name).push(path);
-    });
-
-    // Add Easy-Tap Dots for Small UTs
-    utDots.forEach((ut) => {
-      const [cx, cy] = project(ut.lon, ut.lat);
-      const dot = document.createElementNS(svgNS, "circle");
-      dot.setAttribute("cx", cx.toFixed(1));
-      dot.setAttribute("cy", cy.toFixed(1));
-      dot.setAttribute("r", "4.8");
-      dot.setAttribute("class", "ut-dot");
-
-      dot.addEventListener('click', (e) => {
-        if (moved) return;
-        e.stopPropagation();
-        checkAnswer(ut.name);
-      });
-
-      svg.appendChild(dot);
-      stateSet.add(ut.name);
-      if (!stateMap.has(ut.name)) stateMap.set(ut.name, []);
-      stateMap.get(ut.name).push(dot);
-    });
-
-    mapCanvas.innerHTML = "";
-    mapCanvas.appendChild(svg);
-    window.stateMap = stateMap;
-
-    remainingStates = Array.from(stateSet);
-    totalCount = remainingStates.length;
-    updateUI();
-    nextQuestion();
-  }
-
-  // 💡 HINT FUNCTION: Flashes the target state in Golden Yellow 💡
-  function useHint() {
-    if (!currentTarget || !window.stateMap) return;
-    const elems = window.stateMap.get(currentTarget) || [];
-    if (elems.length === 0) return;
-
-    score = Math.max(0, score - 3);
-    updateUI();
-    showToast(`💡 Hint: Look at the Yellow Highlight! (-3)`, "#facc15");
-
-    clearTimeout(hintTimer);
-    let blinks = 0;
-    function blinkState() {
-      const isGlowing = blinks % 2 === 0;
-      elems.forEach(el => {
-        if (isGlowing) el.classList.add('hint-glow');
-        else el.classList.remove('hint-glow');
-      });
-      blinks++;
-      if (blinks < 6) {
-        hintTimer = setTimeout(blinkState, 280);
-      } else {
-        elems.forEach(el => el.classList.remove('hint-glow'));
-      }
-    }
-    blinkState();
-  }
-
-  function clearAllHints() {
-    clearTimeout(hintTimer);
-    const glowing = mapCanvas.querySelectorAll('.hint-glow');
-    glowing.forEach(el => el.classList.remove('hint-glow'));
-  }
-
-  function checkAnswer(selectedName) {
-    if (!currentTarget) return;
-    const elems = window.stateMap.get(selectedName) || [];
-    if (elems[0] && elems[0].classList.contains('correct')) return;
-
-    if (selectedName === currentTarget) {
-      clearAllHints();
-      elems.forEach(el => el.classList.add('correct'));
-      score += 10;
-      foundCount++;
-      remainingStates = remainingStates.filter(s => s !== currentTarget);
-      showToast(`✅ Correct! ${selectedName} (+10)`, "#22c55e");
-      updateUI();
-      nextQuestion();
-    } else {
-      elems.forEach(el => el.classList.add('wrong'));
-      score = Math.max(0, score - 2);
-      showToast(`❌ That is ${selectedName} (-2)`, "#ef4444");
-      updateUI();
-      setTimeout(() => {
-        elems.forEach(el => el.classList.remove('wrong'));
-      }, 400);
-    }
-  }
-
-  function nextQuestion() {
-    clearAllHints();
-    if (remainingStates.length === 0) {
-      document.getElementById('final-score-text').textContent = `Score: ${score} | Found: ${foundCount}/${totalCount}`;
-      document.getElementById('end-overlay').style.display = 'flex';
-      return;
-    }
-    const r = Math.floor(Math.random() * remainingStates.length);
-    currentTarget = remainingStates[r];
-    document.getElementById('target-name').textContent = currentTarget;
-  }
-
-  function updateUI() {
-    document.getElementById('found-val').textContent = `${foundCount}/${totalCount}`;
-    document.getElementById('score-val').textContent = score;
-  }
-
-  function shareOnWhatsApp() {
-    const msg = `🇮🇳 *INDIA MAP PRO (By RANJEET SINGH)* 🗺️\n\nMaine is game mein *${score} Score* banaya (${foundCount}/${totalCount} States)! Kya aap mujhe hara sakte hain?\n\n👇 *Abhi khelne ke liye link par click karein:*\n${window.location.href}`;
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
-  }
-
-  initMap();
-</script>
-</body>
-</html>
+ 
