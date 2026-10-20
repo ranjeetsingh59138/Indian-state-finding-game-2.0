@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Indian State Finding Game - Pro</title>
+    <!-- Fast Cloudflare CDN scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            background-color: #1e293b;
+            padding: 10px 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+            z-index: 10;
+            border-bottom: 1px solid #334155;
+        }
+
+        .top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            gap: 8px;
+        }
+
+        .game-title {
+            font-size: 1rem;
+            font-weight: 800;
+            color: #38bdf8;
+            letter-spacing: 0.4px;
+            white-space: nowrap;
+        }
+
+        .mode-controls {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        select {
+            background: #0f172a;
+            color: #e2e8f0;
+            border: 1px solid #475569;
+            padding: 4px 6px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .btn-sound {
+            background: #334155;
+            border: 1px solid #475569;
+            color: #f8fafc;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .badge {
+            background: #0f172a;
+            border: 1px solid #334155;
+            padding: 4px 6px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 0.72rem;
+            color: #94a3b8;
+        }
+
+        .badge span {
+            display: block;
+            font-size: 0.88rem;
+            color: #4ade80;
+            font-weight: 800;
+            margin-top: 1px;
+        }
+
+        .badge.timer-badge span { color: #38bdf8; }
+        .badge.timer-danger span {
+            color: #ef4444;
+            animation: pulse 0.6s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { opacity: 1; }
+            to { opacity: 0.4; }
+        }
+
+        .target-container {
+            background: linear-gradient(135deg, #1e3a8a, #0f172a);
+            border: 1.5px solid #38bdf8;
+            padding: 8px 12px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .target-info {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            flex: 1;
+        }
+
+        #target-label {
+            font-size: 0.7rem;
+            color: #cbd5e1;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        #target-display {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #fde047;
+            margin-top: 1px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .btn-hint {
+            background: linear-gradient(135deg, #eab308, #ca8a04);
+            color: #0f172a;
+            border: none;
+            padding: 7px 10px;
+            border-radius: 6px;
+            font-size: 0.76rem;
+            font-weight: 800;
+            cursor: pointer;
+            white-space: nowrap;
+            box-shadow: 0 2px 6px rgba(234, 179, 8, 0.35);
+        }
+
+        .btn-hint:disabled {
+            background: #334155;
+            color: #64748b;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .btn-skip {
+            background-color: #475569;
+            color: #ffffff;
+            border: none;
+            padding: 7px 10px;
+            border-radius: 6px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        #map-wrapper {
+            flex: 1;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .state {
+            fill: #334155;
+            stroke: #94a3b8;
+            stroke-width: 0.9px;
+            transition: fill 0.2s ease;
+            cursor: pointer;
+            vector-effect: non-scaling-stroke;
+        }
+
+        .state:hover { fill: #475569; }
+
+        .state.correct {
+            fill: #22c55e !important;
+            stroke: #14532d;
+            pointer-events: none;
+            animation: none !important;
+        }
+
+        .state.wrong {
+            fill: #ef4444 !important;
+            stroke: #7f1d1d;
+        }
+
+        @keyframes hintBlink {
+            0%, 100% {
+                fill: #facc15;
+                stroke: #fef08a;
+                stroke-width: 2px;
+                filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.85));
+            }
+            50% {
+                fill: #854d0e;
+                stroke: #facc15;
+                stroke-width: 1.2px;
+            }
+        }
+
+        .state.hint-active {
+            animation: hintBlink 0.75s infinite ease-in-out;
+        }
+
+        #toast {
+            position: absolute;
+            top: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            z-index: 20;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .toast-correct { background-color: #16a34a; color: #ffffff; }
+        .toast-wrong { background-color: #dc2626; color: #ffffff; }
+        .toast-hint { background-color: #eab308; color: #0f172a; }
+
+        .zoom-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 15;
+        }
+
+        .zoom-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid #475569;
+            color: #f8fafc;
+            font-size: 1.25rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .footer-credit {
+            position: absolute;
+            bottom: 8px;
+            left: 14px;
+            font-size: 0.72rem;
+            color: #64748b;
+            font-weight: 700;
+            pointer-events: none;
+        }
+
+        #overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 30;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid #334155;
+            border-top-color: #38bdf8;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin-bottom: 14px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .btn-restart {
+            margin-top: 18px;
+            padding: 12px 26px;
+            background: #22c55e;
+            color: #052e16;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: none;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="top-row">
+            <div class="game-title">🇮🇳 INDIA MAP PRO</div>
+            <div class="mode-controls">
+                <select id="quiz-mode" onchange="startNewGame()">
+                    <option value="state">🗺️ States</option>
+                    <option value="capital">🏛️ Capitals</option>
+                </select>
+                <select id="timer-mode" onchange="startNewGame()">
+                    <option value="stopwatch">⏳ Practice</option>
+                    <option value="countdown">⏱️ 60s Challenge</option>
+                </select>
+                <button class="btn-sound" id="sound-btn" onclick="toggleSound()">🔊</button>
+            </div>
+        </div>
+
+        <div class="stats-row">
+            <div class="badge">Found<span id="progress">0/0</span></div>
+            <div class="badge">Score<span id="score">0</span></div>
+            <div class="badge timer-badge" id="timer-box">Time<span id="timer">00:00</span></div>
+            <div class="badge">Best<span id="high-score">0</span></div>
+        </div>
+
+        <div class="target-container">
+            <div class="target-info">
+                <span id="target-label">Tap on this State / UT:</span>
+                <div id="target-display">Loading Map...</div>
+            </div>
+            <div class="action-btns">
+                <button class="btn-hint" id="hint-btn" onclick="useHint()">💡 Hint (3)</button>
+                <button class="btn-skip" onclick="skipState()">Skip ⏭️</button>
+            </div>
+        </div>
+    </header>
+
+    <div id="map-wrapper">
+        <div id="toast"></div>
+
+        <div id="overlay">
+            <div class="spinner" id="spinner"></div>
+            <h2 id="overlay-title">Loading India Map...</h2>
+            <p id="overlay-sub" style="color: #94a3b8; margin-top: 8px; font-size: 0.9rem;">Preparing clean state boundaries...</p>
+            <button class="btn-restart" id="restart-btn" onclick="retryOrRestart()">Retry 🔄</button>
+        </div>
+
+        <div class="zoom-controls">
+            <button class="zoom-btn" onclick="zoomMap(1.4)">+</button>
+            <button class="zoom-btn" onclick="zoomMap(0.7)">−</button>
+            <button class="zoom-btn" onclick="resetZoom()" style="font-size: 1rem;">⟲</button>
+        </div>
+
+        <div class="footer-credit">by RANJEET SINGH</div>
+        <svg id="india-map"></svg>
+    </div>
+
+    <script>
+        // @ts-nocheck
+        /* eslint-disable */
+
+        const FAST_TOPO_URL = "https://cdn.jsdelivr.net/gh/udit-001/india-maps-data@main/topojson/india.json";
+
+        /** @type {Record<string, string>} */
+        const STATE_CAPITALS = {
+            "Andhra Pradesh": "Amaravati", "Arunachal Pradesh": "Itanagar", "Assam": "Dispur",
+            "Bihar": "Patna", "Chhattisgarh": "Raipur", "Goa": "Panaji", "Gujarat": "Gandhinagar",
+            "Haryana": "Chandigarh (Haryana)", "Himachal Pradesh": "Shimla", "Jharkhand": "Ranchi",
+            "Karnataka": "Bengaluru", "Kerala": "Thiruvananthapuram", "Madhya Pradesh": "Bhopal",
+            "Maharashtra": "Mumbai", "Manipur": "Imphal", "Meghalaya": "Shillong", "Mizoram": "Aizawl",
+            "Nagaland": "Kohima", "Odisha": "Bhubaneswar", "Orissa": "Bhubaneswar",
+            "Punjab": "Chandigarh (Punjab)", "Rajasthan": "Jaipur", "Sikkim": "Gangtok",
+            "Tamil Nadu": "Chennai", "Telangana": "Hyderabad", "Tripura": "Agartala",
+            "Uttar Pradesh": "Lucknow", "Uttarakhand": "Dehradun", "Uttaranchal": "Dehradun",
+            "West Bengal": "Kolkata", "Andaman & Nicobar Islands": "Port Blair",
+            "Andaman & Nicobar": "Port Blair", "Andaman and Nicobar": "Port Blair",
+            "Andaman and Nicobar Islands": "Port Blair",
+            "Chandigarh": "Chandigarh (UT)", "Dadra and Nagar Haveli and Daman and Diu": "Daman",
+            "Dadra & Nagar Haveli": "Silvassa", "Dadra and Nagar Haveli": "Silvassa",
+            "Daman & Diu": "Daman", "Daman and Diu": "Daman", "Delhi": "New Delhi",
+            "NCT of Delhi": "New Delhi", "Jammu & Kashmir": "Srinagar / Jammu",
+            "Jammu and Kashmir": "Srinagar / Jammu", "Ladakh": "Leh", "Lakshadweep": "Kavaratti",
+            "Puducherry": "Puducherry", "Pondicherry": "Puducherry"
+        };
+
+        let geoData = null;
+        /** @type {string[]} */
+        let remainingStates = [];
+        let currentTarget = "";
+        let score = 0;
+        let totalStates = 0;
+        let foundStates = 0;
+        let hintsLeft = 3;
+        let hintUsedForCurrent = false;
+        let toastTimer = null;
+        let timerInterval = null;
+        let secondsElapsed = 0;
+        let timeRemaining = 60;
+        let highScore = parseInt(localStorage.getItem("indiaMapBestScore") || "0", 10) || 0;
+        let soundEnabled = true;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContextClass();
+            }
+            if (audioCtx && audioCtx.state === "suspended") {
+                audioCtx.resume();
+            }
+        }
+
+        /** @param {string} type */
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === "correct") {
+                    osc.type = "sine";
+                    osc.frequency.setValueAtTime(587.33, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                } else if (type === "wrong") {
+                    osc.type = "sawtooth";
+                    osc.frequency.setValueAtTime(160, now);
+                    osc.frequency.linearRampToValueAtTime(110, now + 0.25);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+                    osc.start(now);
+                    osc.stop(now + 0.28);
+                } else if (type === "hint") {
+                    osc.type = "triangle";
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.2);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                }
+            } catch (err) {}
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById("sound-btn").innerText = soundEnabled ? "🔊" : "🔇";
+        }
+
+        const svg = d3.select("#india-map");
+        const mapGroup = svg.append("g");
+        const zoom = d3.zoom().scaleExtent([1, 10]).on("zoom", function(event) {
+            mapGroup.attr("transform", event.transform);
+        });
+        svg.call(zoom);
+
+        /** @param {number} factor */
+        function zoomMap(factor) {
+            svg.transition().duration(300).call(zoom.scaleBy, factor);
+        }
+
+        function resetZoom() {
+            svg.transition().duration(400).call(zoom.transform, d3.zoomIdentity);
+        }
+
+        /** @param {any} props */
+        function extractNameFromProps(props) {
+            if (!props) return "Unknown";
+            return props.st_nm || props.ST_NM || props.NAME_1 || props.name || props.state_name || "Unknown";
+        }
+
+        /** @param {any} feature */
+        function getStateName(feature) {
+            return extractNameFromProps(feature ? feature.properties : null);
+        }
+
+        /** @param {string} stateName */
+        function getCapitalName(stateName) {
+            return STATE_CAPITALS[stateName] || stateName;
+        }
+
+        /** @param {any} topoData */
+        function buildStatesOnlyGeoJSON(topoData) {
+            const stateFeatures = [];
+
+            if (topoData.objects.states && topoData.objects.states.geometries && topoData.objects.states.geometries.length > 5) {
+                return topojson.feature(topoData, topoData.objects.states);
+            }
+
+            const objKey = Object.keys(topoData.objects)[0];
+            const geometries = topoData.objects[objKey].geometries || [];
+            /** @type {Record<string, any[]>} */
+            const stateGroups = {};
+
+            for (let i = 0; i < geometries.length; i++) {
+                const geom = geometries[i];
+                const sName = extractNameFromProps(geom.properties);
+                if (sName && sName !== "Unknown") {
+                    if (!stateGroups[sName]) stateGroups[sName] = [];
+                    stateGroups[sName].push(geom);
+                }
+            }
+
+            for (const sName in stateGroups) {
+                try {
+                    const mergedGeometry = topojson.merge(topoData, stateGroups[sName]);
+                    stateFeatures.push({
+                        type: "Feature",
+                        properties: { st_nm: sName },
+                        geometry: mergedGeometry
+                    });
+                } catch (err) {
+                    const fallbackFeat = topojson.feature(topoData, {
+                        type: "GeometryCollection",
+                        geometries: stateGroups[sName]
+                    });
+                    for (let j = 0; j < fallbackFeat.features.length; j++) {
+                        const feat = fallbackFeat.features[j];
+                        feat.properties = { st_nm: sName };
+                        stateFeatures.push(feat);
+                    }
+                }
+            }
+
+            return { type: "FeatureCollection", features: stateFeatures };
+        }
+
+        async function loadMapData() {
+            document.getElementById("high-score").innerText = String(highScore);
+            document.getElementById("spinner").style.display = "block";
+            document.getElementById("restart-btn").style.display = "none";
+            document.getElementById("overlay-title").innerText = "Loading India Map...";
+
+            const cached = localStorage.getItem("cleanMergedStates_v7");
+            if (cached) {
+                try {
+                    const parsed = JSON.parse(cached);
+                    if (parsed && parsed.features && parsed.features.length > 20) {
+                        geoData = parsed;
+                        document.getElementById("overlay").style.display = "none";
+                        drawMap();
+                        startNewGame();
+                        return;
+                    }
+                } catch (err) {
+                    localStorage.removeItem("cleanMergedStates_v7");
+                }
+            }
+
+            try {
+                const res = await fetch(FAST_TOPO_URL);
+                if (!res.ok) throw new Error("Server status: " + res.status);
+                const topoData = await res.json();
+
+                geoData = buildStatesOnlyGeoJSON(topoData);
+
+                if (!geoData || !geoData.features || geoData.features.length === 0) {
+                    throw new Error("Empty map features");
+                }
+
+                try {
+                    localStorage.setItem("cleanMergedStates_v7", JSON.stringify(geoData));
+                } catch (err) {}
+
+                document.getElementById("overlay").style.display = "none";
+                drawMap();
+                startNewGame();
+            } catch (err) {
+                document.getElementById("spinner").style.display = "none";
+                document.getElementById("overlay-title").innerText = "Load Error!";
+                document.getElementById("overlay-sub").innerText = "Please check internet connection and tap Retry.";
+                const btn = document.getElementById("restart-btn");
+                btn.innerText = "Retry Loading 🔄";
+                btn.style.display = "inline-block";
+            }
+        }
+
+        function retryOrRestart() {
+            if (!geoData) {
+                loadMapData();
+            } else {
+                startNewGame();
+            }
+        }
+
+        function drawMap() {
+            if (!geoData) return;
+            const wrap = document.getElementById("map-wrapper");
+            const w = wrap.clientWidth || window.innerWidth || 360;
+            const h = wrap.clientHeight || (window.innerHeight - 160) || 500;
+
+            const proj = d3.geoMercator().fitExtent([[16, 16], [w - 16, h - 26]], geoData);
+            const pathGen = d3.geoPath().projection(proj);
+
+            mapGroup.selectAll("path")
+                .data(geoData.features)
+                .join("path")
+                .attr("class", "state")
+                .attr("d", pathGen)
+                .on("click", function(event, d) {
+                    event.stopPropagation();
+                    handleStateTap(getStateName(d));
+                });
+        }
+
+        /** @param {number} sec */
+        function formatTime(sec) {
+            return String(Math.floor(sec / 60)).padStart(2, "0") + ":" + String(sec % 60).padStart(2, "0");
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            const mode = document.getElementById("timer-mode").value;
+            const box = document.getElementById("timer-box");
+            box.classList.remove("timer-danger");
+
+            if (mode === "stopwatch") {
+                secondsElapsed = 0;
+                document.getElementById("timer").innerText = "00:00";
+                timerInterval = setInterval(function() {
+                    secondsElapsed++;
+                    document.getElementById("timer").innerText = formatTime(secondsElapsed);
+                }, 1000);
+            } else {
+                timeRemaining = 60;
+                document.getElementById("timer").innerText = "01:00";
+                timerInterval = setInterval(function() {
+                    timeRemaining--;
+                    document.getElementById("timer").innerText = formatTime(timeRemaining);
+                    if (timeRemaining <= 10) box.classList.add("timer-danger");
+                    if (timeRemaining <= 0) {
+                        clearInterval(timerInterval);
+                        playSound("wrong");
+                        showEndScreen(false);
+                    }
+                }, 1000);
+            }
+        }
+
+        function startNewGame() {
+            if (!geoData) return;
+            document.getElementById("overlay").style.display = "none";
+            resetZoom();
+
+            const allNames = [];
+            for (let i = 0; i < geoData.features.length; i++) {
+                allNames.push(getStateName(geoData.features[i]));
+            }
+            remainingStates = Array.from(new Set(allNames)).sort(function() {
+                return Math.random() - 0.5;
+            });
+
+            totalStates = remainingStates.length;
+            foundStates = 0;
+            score = 0;
+            hintsLeft = 3;
+            hintUsedForCurrent = false;
+
+            updateHintButton();
+            updateScoreboard();
+            mapGroup.selectAll(".state").attr("class", "state");
+
+            pickNextState();
+            startTimer();
+        }
+
+        function updateHintButton() {
+            const btn = document.getElementById("hint-btn");
+            btn.innerText = "💡 Hint (" + hintsLeft + ")";
+            btn.disabled = hintsLeft <= 0;
+        }
+
+        function useHint() {
+            if (hintsLeft <= 0 || !currentTarget) return;
+            if (hintUsedForCurrent) {
+                showToast("💡 Map par पीला (Yellow) chamakta hua state dekhein!", "toast-hint");
+                return;
+            }
+            hintsLeft--;
+            hintUsedForCurrent = true;
+            updateHintButton();
+            playSound("hint");
+
+            mapGroup.selectAll(".state")
+                .filter(function(d) { return getStateName(d) === currentTarget; })
+                .classed("hint-active", true);
+
+            showToast("💡 Hint: " + currentTarget + " पीले rang mein chamak raha hai!", "toast-hint");
+        }
+
+        function pickNextState() {
+            mapGroup.selectAll(".state").classed("hint-active", false);
+            hintUsedForCurrent = false;
+
+            if (remainingStates.length === 0) {
+                clearInterval(timerInterval);
+                showEndScreen(true);
+                return;
+            }
+
+            currentTarget = remainingStates[0];
+            const quizMode = document.getElementById("quiz-mode").value;
+            document.getElementById("target-label").innerText =
+                quizMode === "capital" ? "🏛️ Kis State/UT ki Capital hai:" : "🗺️ Tap on this State / UT:";
+            document.getElementById("target-display").innerText =
+                quizMode === "capital" ? getCapitalName(currentTarget) : currentTarget;
+        }
+
+        function skipState() {
+            if (remainingStates.length <= 1) return;
+            const first = remainingStates.shift();
+            if (first) remainingStates.push(first);
+            pickNextState();
+        }
+
+        /** @param {string} tappedName */
+        function handleStateTap(tappedName) {
+            const tappedPaths = mapGroup.selectAll(".state")
+                .filter(function(d) { return getStateName(d) === tappedName; });
+
+            if (!tappedPaths.empty() && tappedPaths.classed("correct")) return;
+
+            const quizMode = document.getElementById("quiz-mode").value;
+
+            if (tappedName === currentTarget) {
+                playSound("correct");
+                tappedPaths
+                    .classed("wrong", false)
+                    .classed("hint-active", false)
+                    .classed("correct", true);
+
+                score += 10;
+                foundStates++;
+                remainingStates.shift();
+
+                if (score > highScore) {
+                    highScore = score;
+                    localStorage.setItem("indiaMapBestScore", String(highScore));
+                }
+
+                const msg = quizMode === "capital"
+                    ? "✅ Sahi! " + getCapitalName(tappedName) + " -> " + tappedName
+                    : "✅ Sahi Jawab! " + tappedName;
+
+                showToast(msg, "toast-correct");
+                updateScoreboard();
+                pickNextState();
+            } else {
+                playSound("wrong");
+                tappedPaths.classed("wrong", true);
+                score = Math.max(0, score - 2);
+
+                const msg = quizMode === "capital"
+                    ? "❌ Galat! Ye " + tappedName + " (" + getCapitalName(tappedName) + ") hai"
+                    : "❌ Galat! Ye " + tappedName + " hai";
+
+                showToast(msg, "toast-wrong");
+                updateScoreboard();
+
+                setTimeout(function() {
+                    mapGroup.selectAll(".state")
+                        .filter(function(d) { return getStateName(d) === tappedName; })
+                        .each(function() {
+                            const el = d3.select(this);
+                            if (!el.classed("correct")) {
+                                el.classed("wrong", false);
+                            }
+                        });
+                }, 900);
+            }
+        }
+
+        function updateScoreboard() {
+            document.getElementById("score").innerText = String(score);
+            document.getElementById("progress").innerText = foundStates + "/" + totalStates;
+            document.getElementById("high-score").innerText = String(highScore);
+        }
+
+        /**
+         * @param {string} msg
+         * @param {string} cls
+         */
+        function showToast(msg, cls) {
+            const t = document.getElementById("toast");
+            t.innerText = msg;
+            t.className = cls;
+            t.style.opacity = "1";
+            t.style.transform = "translateX(-50%) translateY(5px)";
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(function() {
+                t.style.opacity = "0";
+                t.style.transform = "translateX(-50%) translateY(0px)";
+            }, 1500);
+        }
+
+        /** @param {boolean} isWin */
+        function showEndScreen(isWin) {
+            const ov = document.getElementById("overlay");
+            document.getElementById("spinner").style.display = "none";
+            document.getElementById("overlay-title").innerText = isWin ? "🎉 Badhai Ho! Aap Jeet Gaye!" : "⏰ Time Over!";
+            document.getElementById("overlay-sub").innerText = "Final Score: " + score + " | Best Score: " + highScore;
+            const btn = document.getElementById("restart-btn");
+            btn.innerText = "Play Again 🔄";
+            btn.style.display = "inline-block";
+            ov.style.display = "flex";
+        }
+
+        window.addEventListener("resize", function() {
+            if (geoData) drawMap();
+        });
+
+        loadMapData();
+    </script>
+</body>
+</html>
+
+
