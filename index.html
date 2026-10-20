@@ -81,7 +81,7 @@
     color: #f8fafc;
     border-radius: 8px;
     padding: 3px 8px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 800;
     cursor: pointer;
   }
@@ -95,7 +95,7 @@
     border-radius: 8px;
     padding: 2px 8px;
     text-align: center;
-    min-width: 58px;
+    min-width: 56px;
   }
   .stat-label {
     font-size: 8px;
@@ -111,7 +111,7 @@
     color: #fb923c;
   }
 
-  /* Target Box with Hint & Skip Buttons */
+  /* Target Box */
   .target-box {
     background: #172554;
     border: 1.5px solid #38bdf8;
@@ -170,11 +170,11 @@
     transform: scale(0.94);
   }
 
-  /* Map Container - Pure GPU Layer */
+  /* Map Container - Pure 60FPS GPU Layer */
   .map-wrapper {
     flex: 1;
     position: relative;
-    background: #060a12;
+    background: radial-gradient(circle at center, #0f172a 0%, #060a12 100%);
     overflow: hidden;
     touch-action: none;
   }
@@ -190,39 +190,39 @@
     -webkit-backface-visibility: hidden;
   }
   svg {
-    width: 98%;
-    height: 98%;
-    shape-rendering: optimizeSpeed;
+    width: 96%;
+    height: 96%;
+    max-width: 650px;
+    max-height: 750px;
+    shape-rendering: geometricPrecision;
   }
-  /* Crisp & Fast State Boundaries */
   svg path {
     fill: #1e293b;
-    stroke: #cbd5e1;
-    stroke-width: 0.45px;
+    stroke: #94a3b8;
+    stroke-width: 0.85px;
     stroke-linejoin: round;
     cursor: pointer;
   }
   svg path.correct {
     fill: #16a34a !important;
     stroke: #ffffff !important;
-    stroke-width: 0.6px !important;
+    stroke-width: 1.1px !important;
     pointer-events: none;
   }
   svg path.wrong {
     fill: #dc2626 !important;
   }
-  /* 💡 HINT HIGHLIGHT EFFECT 💡 */
   svg path.hint-glow {
     fill: #facc15 !important;
     stroke: #ffffff !important;
-    stroke-width: 1px !important;
+    stroke-width: 1.4px !important;
   }
 
-  /* Small UT Dots */
+  /* Small UT & Special Region Dots */
   svg circle.ut-dot {
     fill: #38bdf8;
     stroke: #ffffff;
-    stroke-width: 0.8px;
+    stroke-width: 1.2px;
     cursor: pointer;
   }
   svg circle.ut-dot.correct {
@@ -236,8 +236,8 @@
   svg circle.ut-dot.hint-glow {
     fill: #facc15 !important;
     stroke: #ff0000 !important;
-    stroke-width: 1.5px !important;
-    r: 7.5px !important;
+    stroke-width: 2px !important;
+    r: 10px !important;
   }
 
   /* Floating Score Popup */
@@ -247,16 +247,15 @@
     font-size: 18px;
     pointer-events: none;
     z-index: 40;
-    animation: floatUp 0.75s ease-out forwards;
-    text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+    animation: floatUp 0.7s ease-out forwards;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.9);
   }
   @keyframes floatUp {
     0% { opacity: 1; transform: translate(-50%, 0) scale(0.8); }
-    50% { transform: translate(-50%, -22px) scale(1.15); }
-    100% { opacity: 0; transform: translate(-50%, -40px) scale(1); }
+    50% { transform: translate(-50%, -20px) scale(1.15); }
+    100% { opacity: 0; transform: translate(-50%, -38px) scale(1); }
   }
 
-  /* Confetti Canvas */
   #fx-canvas {
     position: absolute;
     inset: 0;
@@ -418,7 +417,7 @@
     <div class="target-box">
       <div class="target-info">
         <div class="target-sub">🗺️ TAP ON THIS STATE / UT:</div>
-        <div class="target-state" id="target-name">Loading Fast Map...</div>
+        <div class="target-state" id="target-name">Starting Game...</div>
       </div>
       <div class="btn-group">
         <button class="hint-btn" onclick="useHint()">💡 Hint</button>
@@ -462,42 +461,39 @@
   let hintTimer = null;
 
   /* =========================================================
-     🎵 BUILT-IN WEB AUDIO SYNTHESIZER (SFX + BGM, Zero Lag) 🎵
+     🎵 WEB AUDIO SYNTHESIZER (SFX + BGM, Zero Lag) 🎵
      ========================================================= */
   let audioCtx = null;
   let soundEnabled = true;
   let bgmInterval = null;
   let bgmStep = 0;
-  // Catchy Arcade Melody Notes (Hz)
   const melodyNotes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 293.66, 349.23, 440.00, 349.23];
 
   function unlockAudio() {
-    if (!audioCtx) {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      audioCtx = new AudioContext();
-    }
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-    if (soundEnabled && !bgmInterval) {
-      startBGM();
-    }
+    try {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      if (soundEnabled && !bgmInterval) startBGM();
+    } catch (e) {}
   }
 
   function playTone(freq, type, duration, vol = 0.12, delay = 0) {
     if (!soundEnabled || !audioCtx) return;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
-
-    gain.gain.setValueAtTime(vol, audioCtx.currentTime + delay);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration);
-
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start(audioCtx.currentTime + delay);
-    osc.stop(audioCtx.currentTime + delay + duration);
+    try {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+      gain.gain.setValueAtTime(vol, audioCtx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(audioCtx.currentTime + delay);
+      osc.stop(audioCtx.currentTime + delay + duration);
+    } catch (e) {}
   }
 
   function startBGM() {
@@ -505,43 +501,42 @@
     bgmInterval = setInterval(() => {
       if (!soundEnabled || !audioCtx || audioCtx.state !== 'running') return;
       const note = melodyNotes[bgmStep % melodyNotes.length];
-      playTone(note, 'sine', 0.28, 0.025, 0);
+      playTone(note, 'sine', 0.25, 0.022, 0);
       bgmStep++;
     }, 380);
   }
 
   function sfxCorrect() {
     unlockAudio();
-    // Upward Winning Coin Chime
-    playTone(523.25, 'triangle', 0.12, 0.18, 0);
-    playTone(659.25, 'triangle', 0.12, 0.18, 0.08);
-    playTone(783.99, 'triangle', 0.15, 0.18, 0.16);
-    playTone(1046.50, 'sine', 0.30, 0.22, 0.24);
+    playTone(523.25, 'triangle', 0.11, 0.18, 0);
+    playTone(659.25, 'triangle', 0.11, 0.18, 0.08);
+    playTone(783.99, 'triangle', 0.14, 0.18, 0.16);
+    playTone(1046.50, 'sine', 0.28, 0.22, 0.24);
   }
 
   function sfxWrong() {
     unlockAudio();
-    // Error Buzz + Mobile Vibrate
-    playTone(170, 'sawtooth', 0.18, 0.16, 0);
-    playTone(130, 'sawtooth', 0.25, 0.18, 0.14);
-    if (navigator.vibrate) navigator.vibrate(120);
+    playTone(165, 'sawtooth', 0.16, 0.15, 0);
+    playTone(125, 'sawtooth', 0.22, 0.17, 0.13);
+    if (navigator.vibrate) navigator.vibrate(100);
   }
 
   function sfxHint() {
     unlockAudio();
-    playTone(600, 'sine', 0.1, 0.12, 0);
-    playTone(900, 'sine', 0.2, 0.14, 0.09);
+    playTone(580, 'sine', 0.1, 0.12, 0);
+    playTone(880, 'sine', 0.18, 0.14, 0.09);
   }
 
   function sfxClick() {
     unlockAudio();
-    playTone(420, 'sine', 0.07, 0.09, 0);
+    playTone(420, 'sine', 0.06, 0.08, 0);
   }
 
   function sfxWinFanfare() {
     unlockAudio();
-    const notes = [523.25, 659.25, 783.99, 1046.50, 783.99, 1046.50];
-    notes.forEach((n, i) => playTone(n, 'triangle', 0.22, 0.2, i * 0.14));
+    [523.25, 659.25, 783.99, 1046.50, 783.99, 1046.50].forEach((n, i) =>
+      playTone(n, 'triangle', 0.22, 0.2, i * 0.14)
+    );
   }
 
   function toggleAudio() {
@@ -560,11 +555,10 @@
     }
   }
 
-  // Unlock audio on first touch anywhere
   window.addEventListener('pointerdown', () => unlockAudio(), { once: true });
 
   /* =========================================================
-     🎆 CONFETTI & FLOATING SCORE POPUP ENGINE 🎆
+     🎆 CONFETTI & POPUP ENGINE 🎆
      ========================================================= */
   const fxCanvas = document.getElementById('fx-canvas');
   const fxCtx = fxCanvas.getContext('2d');
@@ -580,14 +574,14 @@
   function burstConfetti(x, y) {
     resizeFxCanvas();
     const colors = ['#22c55e', '#fbbf24', '#38bdf8', '#f43f5e', '#a855f7', '#ffffff'];
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < 20; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 2 + Math.random() * 5.5;
+      const speed = 2 + Math.random() * 5;
       particles.push({
         x, y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed - 2,
-        size: 4 + Math.random() * 4,
+        size: 4 + Math.random() * 3,
         color: colors[Math.floor(Math.random() * colors.length)],
         life: 1
       });
@@ -600,8 +594,8 @@
     particles.forEach(p => {
       p.x += p.vx;
       p.y += p.vy;
-      p.vy += 0.22; // gravity
-      p.life -= 0.028;
+      p.vy += 0.24;
+      p.life -= 0.032;
       fxCtx.globalAlpha = Math.max(0, p.life);
       fxCtx.fillStyle = p.color;
       fxCtx.fillRect(p.x, p.y, p.size, p.size);
@@ -623,11 +617,11 @@
     pop.style.top = y + 'px';
     pop.style.color = color;
     mapWrapper.appendChild(pop);
-    setTimeout(() => pop.remove(), 750);
+    setTimeout(() => pop.remove(), 700);
   }
 
   /* =========================================================
-     🚀 60FPS MATRIX TRANSFORM & MAP ENGINE 🚀
+     🚀 60FPS HARDWARE ACCELERATED ZOOM & PAN 🚀
      ========================================================= */
   let scale = 1, tx = 0, ty = 0;
   let isDragging = false, startX = 0, startY = 0, moved = false;
@@ -703,7 +697,7 @@
         tx = nx;
         ty = ny;
         clampPan();
-        mapCanvas.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`;
+        renderTransform();
       }
     } else if (e.touches.length === 2 && pinchDist > 0) {
       const dx = e.touches[0].clientX - e.touches[1].clientX;
@@ -728,20 +722,269 @@
     toastTimer = setTimeout(() => { t.style.opacity = "0"; }, 1200);
   }
 
-  // Official Updated Map Sources (J&K and Ladakh Separate + Accurate Boundaries)
-  const mapSources = [
-    "https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson",
-    "https://raw.githubusercontent.com/Subhash9325/GeoJson-Data-of-Indian-States/master/Indian_States"
+  /* =========================================================
+     🗺️ ULTRA-FAST RELIABLE INDIA SVG + J&K / LADAKH SPLIT 🗺️
+     ========================================================= */
+  const fastSvgUrls = [
+    "https://cdn.jsdelivr.net/npm/@svg-maps/india@1.0.1/india.svg",
+    "https://unpkg.com/@svg-maps/india@1.0.1/india.svg",
+    "https://cdn.jsdelivr.net/gh/svg-maps/india@master/india.svg"
   ];
 
-  // Clear Tap Dots for Small Union Territories
-  const utDots = [
-    { name: "Chandigarh", lon: 76.78, lat: 30.73 },
-    { name: "Delhi", lon: 77.10, lat: 28.65 },
-    { name: "Puducherry", lon: 79.81, lat: 11.94 },
-    { name: "Lakshadweep", lon: 72.64, lat: 10.57 },
-    { name: "Dadra and Nagar Haveli and Daman and Diu", lon: 72.84, lat: 20.40 }
-  ];
+  async function fetchWithTimeout(url, ms = 3500) {
+    const ctrl = new AbortController();
+    const id = setTimeout(() => ctrl.abort(), ms);
+    try {
+      const res = await fetch(url, { signal: ctrl.signal });
+      clearTimeout(id);
+      return res;
+    } catch (e) {
+      clearTimeout(id);
+      throw e;
+    }
+  }
 
-  function project(lon, lat) {
+  async function initMap() {
+    for (const url of fastSvgUrls) {
+      try {
+        const res = await fetchWithTimeout(url, 3500);
+        if (res.ok) {
+          const svgText = await res.text();
+          if (svgText.includes("<svg")) {
+            mapCanvas.innerHTML = svgText;
+            enhanceMapWithLadakhSplit();
+            return;
+          }
+        }
+      } catch (err) {}
+    }
+    document.getElementById('target-name').textContent = "Tap Skip or Reload Page";
+  }
+
+  function enhanceMapWithLadakhSplit() {
+    const svg = mapCanvas.querySelector('svg');
+    if (!svg) return;
+    const svgNS = "http://www.w3.org/2000/svg";
+
+    // Create crisp SVG clipPaths to split J&K (West) and Ladakh (North-East) accurately
+    const jkPath = svg.querySelector('#in-jk, [name="Jammu and Kashmir"]');
+    const stateSet = new Set();
+    const stateMap = new Map();
+
+    function registerElement(name, elem) {
+      stateSet.add(name);
+      if (!stateMap.has(name)) stateMap.set(name, []);
+      stateMap.get(name).push(elem);
+      elem.addEventListener('click', (e) => {
+        if (moved) return;
+        e.stopPropagation();
+        checkAnswer(name, e);
+      });
+    }
+
+    if (jkPath) {
+      const dOrig = jkPath.getAttribute('d');
+      const bbox = jkPath.getBBox();
+      const splitX = bbox.x + bbox.width * 0.44;
+      const splitY = bbox.y + bbox.height * 0.42;
+
+      const defs = document.createElementNS(svgNS, "defs");
+
+      // Clip for Jammu & Kashmir (South-West half)
+      const clipJK = document.createElementNS(svgNS, "clipPath");
+      clipJK.setAttribute("id", "clip-jk");
+      const polyJK = document.createElementNS(svgNS, "polygon");
+      polyJK.setAttribute("points", `${bbox.x - 10},${splitY - 12} ${splitX},${splitY - 12} ${splitX + 10},${bbox.y + bbox.height + 10} ${bbox.x - 10},${bbox.y + bbox.height + 10}`);
+      clipJK.appendChild(polyJK);
+
+      // Clip for Ladakh (North & East half)
+      const clipLA = document.createElementNS(svgNS, "clipPath");
+      clipLA.setAttribute("id", "clip-la");
+      const polyLA = document.createElementNS(svgNS, "polygon");
+      polyLA.setAttribute("points", `${bbox.x - 10},${bbox.y - 10} ${bbox.x + bbox.width + 20},${bbox.y - 10} ${bbox.x + bbox.width + 20},${bbox.y + bbox.height + 10} ${splitX + 10},${bbox.y + bbox.height + 10} ${splitX},${splitY - 12} ${bbox.x - 10},${splitY - 12}`);
+      clipLA.appendChild(polyLA);
+
+      defs.appendChild(clipJK);
+      defs.appendChild(clipLA);
+      svg.insertBefore(defs, svg.firstChild);
+
+      // Create Ladakh Path
+      const ladakhPath = document.createElementNS(svgNS, "path");
+      ladakhPath.setAttribute("d", dOrig);
+      ladakhPath.setAttribute("clip-path", "url(#clip-la)");
+      jkPath.parentNode.insertBefore(ladakhPath, jkPath.nextSibling);
+
+      // Clip J&K Path
+      jkPath.setAttribute("clip-path", "url(#clip-jk)");
+
+      // Draw crisp border line between J&K and Ladakh
+      const borderLine = document.createElementNS(svgNS, "polyline");
+      borderLine.setAttribute("points", `${bbox.x + 14},${splitY - 10} ${splitX},${splitY - 10} ${splitX + 8},${bbox.y + bbox.height - 6}`);
+      borderLine.setAttribute("fill", "none");
+      borderLine.setAttribute("stroke", "#cbd5e1");
+      borderLine.setAttribute("stroke-width", "1.1");
+      borderLine.setAttribute("pointer-events", "none");
+      jkPath.parentNode.insertBefore(borderLine, ladakhPath.nextSibling);
+
+      registerElement("Jammu and Kashmir", jkPath);
+      registerElement("Ladakh", ladakhPath);
+    }
+
+    // Register all other States & UTs
+    const allPaths = svg.querySelectorAll('path');
+    allPaths.forEach((p) => {
+      if (p === jkPath || p.getAttribute('clip-path') === 'url(#clip-la)') return;
+      let name = p.getAttribute('name') || p.getAttribute('title') || p.id;
+      if (!name) return;
+
+      if (name.includes("Dadra") || name.includes("Daman")) {
+        name = "Dadra and Nagar Haveli and Daman and Diu";
+      }
+      if (name === "Orissa") name = "Odisha";
+      if (name === "Uttaranchal") name = "Uttarakhand";
+
+      registerElement(name, p);
+
+      // Add easy-tap dot for tiny UTs so mobile players can tap effortlessly
+      const tinyUTs = ["Chandigarh", "Delhi", "Puducherry", "Lakshadweep", "Dadra and Nagar Haveli and Daman and Diu"];
+      if (tinyUTs.includes(name)) {
+        try {
+          const b = p.getBBox();
+          if (b.width < 18 && b.height < 18) {
+            const dot = document.createElementNS(svgNS, "circle");
+            dot.setAttribute("cx", (b.x + b.width / 2).toFixed(1));
+            dot.setAttribute("cy", (b.y + b.height / 2).toFixed(1));
+            dot.setAttribute("r", "5.5");
+            dot.setAttribute("class", "ut-dot");
+            svg.appendChild(dot);
+            stateMap.get(name).push(dot);
+            dot.addEventListener('click', (e) => {
+              if (moved) return;
+              e.stopPropagation();
+              checkAnswer(name, e);
+            });
+          }
+        } catch (e) {}
+      }
+    });
+
+    window.stateMap = stateMap;
+    remainingStates = Array.from(stateSet);
+    totalCount = remainingStates.length;
+    updateUI();
+    nextQuestion();
+  }
+
+  function useHint() {
+    if (!currentTarget || !window.stateMap) return;
+    const elems = window.stateMap.get(currentTarget) || [];
+    if (elems.length === 0) return;
+
+    sfxHint();
+    score = Math.max(0, score - 3);
+    streak = 0;
+    updateUI();
+    showToast(`💡 Hint: Look at the Yellow Highlight! (-3)`, "#facc15");
+
+    clearTimeout(hintTimer);
+    let blinks = 0;
+    function blinkState() {
+      const isGlowing = blinks % 2 === 0;
+      elems.forEach(el => {
+        if (isGlowing) el.classList.add('hint-glow');
+        else el.classList.remove('hint-glow');
+      });
+      blinks++;
+      if (blinks < 6) {
+        hintTimer = setTimeout(blinkState, 260);
+      } else {
+        elems.forEach(el => el.classList.remove('hint-glow'));
+      }
+    }
+    blinkState();
+  }
+
+  function skipQuestion() {
+    sfxClick();
+    streak = 0;
+    updateUI();
+    nextQuestion();
+  }
+
+  function clearAllHints() {
+    clearTimeout(hintTimer);
+    const glowing = mapCanvas.querySelectorAll('.hint-glow');
+    glowing.forEach(el => el.classList.remove('hint-glow'));
+  }
+
+  function checkAnswer(selectedName, evt) {
+    if (!currentTarget) return;
+    const elems = window.stateMap.get(selectedName) || [];
+    if (elems[0] && elems[0].classList.contains('correct')) return;
+
+    const rect = mapWrapper.getBoundingClientRect();
+    const clickX = evt ? (evt.clientX - rect.left) : (rect.width / 2);
+    const clickY = evt ? (evt.clientY - rect.top) : (rect.height / 2);
+
+    if (selectedName === currentTarget) {
+      clearAllHints();
+      sfxCorrect();
+      elems.forEach(el => el.classList.add('correct'));
+      streak++;
+      const bonus = streak > 1 ? (streak - 1) * 2 : 0;
+      const pointsEarned = 10 + bonus;
+      score += pointsEarned;
+      foundCount++;
+
+      burstConfetti(clickX, clickY);
+      showScorePopup(clickX, clickY, streak > 1 ? `+${pointsEarned} 🔥` : `+10`, "#4ade80");
+
+      remainingStates = remainingStates.filter(s => s !== currentTarget);
+      showToast(streak > 1 ? `🔥 ${streak}x Streak! ${selectedName} (+${pointsEarned})` : `✅ Correct! ${selectedName} (+10)`, "#22c55e");
+      updateUI();
+      nextQuestion();
+    } else {
+      sfxWrong();
+      elems.forEach(el => el.classList.add('wrong'));
+      streak = 0;
+      score = Math.max(0, score - 2);
+      showScorePopup(clickX, clickY, `-2 ❌`, "#f87171");
+      showToast(`❌ That is ${selectedName} (-2)`, "#ef4444");
+      updateUI();
+      setTimeout(() => {
+        elems.forEach(el => el.classList.remove('wrong'));
+      }, 400);
+    }
+  }
+
+  function nextQuestion() {
+    clearAllHints();
+    if (remainingStates.length === 0) {
+      sfxWinFanfare();
+      burstConfetti(mapWrapper.clientWidth / 2, mapWrapper.clientHeight / 2);
+      document.getElementById('final-score-text').textContent = `Score: ${score} | Found: ${foundCount}/${totalCount}`;
+      document.getElementById('end-overlay').style.display = 'flex';
+      return;
+    }
+    const r = Math.floor(Math.random() * remainingStates.length);
+    currentTarget = remainingStates[r];
+    document.getElementById('target-name').textContent = currentTarget;
+  }
+
+  function updateUI() {
+    document.getElementById('found-val').textContent = `${foundCount}/${totalCount}`;
+    document.getElementById('score-val').textContent = score;
+    document.getElementById('streak-val').textContent = `🔥${streak}`;
+  }
+
+  function shareOnWhatsApp() {
+    const msg = `🇮🇳 *INDIA MAP PRO (By RANJEET SINGH)* 🗺️\n\nMaine is game mein *${score} Score* banaya (${foundCount}/${totalCount} States)! Kya aap mujhe hara sakte hain?\n\n👇 *Abhi khelne ke liye link par click karein:*\n${window.location.href}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+  }
+
+  initMap();
+</script>
+</body>
+</html>
+
  
