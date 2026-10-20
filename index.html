@@ -11,11 +11,12 @@
     padding: 0;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
   body {
-    background-color: #0b1120;
+    background-color: #060a12;
     color: #f8fafc;
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     height: 100dvh;
     width: 100vw;
     overflow: hidden;
@@ -23,131 +24,115 @@
     flex-direction: column;
   }
 
-  /* 🌟 TOP VIP CREATOR BANNER 🌟 */
+  /* 👑 TOP VIP CREATOR BANNER 👑 */
   .creator-top-banner {
-    background: linear-gradient(90deg, #b45309, #f59e0b, #fbbf24, #f59e0b, #b45309);
-    background-size: 200% auto;
-    color: #000000;
+    background: linear-gradient(90deg, #b45309, #fbbf24, #b45309);
+    color: #000;
     text-align: center;
-    padding: 7px 12px;
+    padding: 6px 10px;
     font-weight: 900;
-    font-size: 14px;
-    letter-spacing: 1.5px;
+    font-size: 13px;
+    letter-spacing: 1px;
     text-transform: uppercase;
-    box-shadow: 0 4px 15px rgba(251, 191, 36, 0.45);
     z-index: 50;
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 8px;
-    border-bottom: 2px solid #fffbeb;
-    animation: shine 4s linear infinite;
-  }
-  @keyframes shine {
-    to { background-position: 200% center; }
+    border-bottom: 2px solid #fef08a;
   }
   .creator-top-banner span {
-    background: #000;
+    background: #060a12;
     color: #fbbf24;
     padding: 2px 10px;
-    border-radius: 12px;
+    border-radius: 10px;
     font-size: 13px;
     font-weight: 900;
     letter-spacing: 1px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
   }
 
-  /* Header & Controls */
+  /* Header Panel */
   .header-panel {
     background: #0f172a;
-    padding: 10px 14px;
+    padding: 8px 12px;
     border-bottom: 1px solid #1e293b;
     z-index: 20;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   }
   .top-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
   .game-title {
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 900;
     color: #38bdf8;
-    letter-spacing: 0.8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    text-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
+    letter-spacing: 0.5px;
   }
   .stats-row {
     display: flex;
-    gap: 8px;
+    gap: 6px;
   }
   .stat-card {
     background: #1e293b;
     border: 1px solid #334155;
-    border-radius: 10px;
-    padding: 4px 12px;
+    border-radius: 8px;
+    padding: 3px 10px;
     text-align: center;
-    min-width: 78px;
+    min-width: 72px;
   }
   .stat-label {
-    font-size: 10px;
+    font-size: 9px;
     color: #94a3b8;
     text-transform: uppercase;
   }
   .stat-val {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 800;
     color: #4ade80;
   }
 
   /* Target Box */
   .target-box {
-    background: linear-gradient(135deg, #1e3a8a, #172554);
-    border: 2px solid #38bdf8;
-    border-radius: 12px;
-    padding: 8px 14px;
+    background: #172554;
+    border: 1.5px solid #38bdf8;
+    border-radius: 10px;
+    padding: 7px 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 4px 15px rgba(56, 189, 248, 0.2);
   }
   .target-sub {
-    font-size: 10px;
+    font-size: 9px;
     color: #93c5fd;
     text-transform: uppercase;
-    letter-spacing: 0.8px;
     font-weight: 700;
   }
   .target-state {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 900;
     color: #fbbf24;
-    margin-top: 2px;
-    text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    margin-top: 1px;
   }
   .skip-btn {
-    background: rgba(255,255,255,0.12);
-    border: 1px solid rgba(255,255,255,0.25);
-    color: #e2e8f0;
+    background: #1e3a8a;
+    border: 1px solid #60a5fa;
+    color: #fff;
     padding: 6px 12px;
     border-radius: 8px;
     font-size: 12px;
     font-weight: 700;
-    cursor: pointer;
   }
   .skip-btn:active {
-    transform: scale(0.95);
+    opacity: 0.7;
   }
 
-  /* Map Container */
+  /* Map Container - Pure GPU Layer */
   .map-wrapper {
     flex: 1;
     position: relative;
-    background: radial-gradient(circle at center, #111c35 0%, #070b14 100%);
+    background: #060a12;
     overflow: hidden;
     touch-action: none;
   }
@@ -157,50 +142,61 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    transform-origin: center center;
-    transition: transform 0.08s ease-out;
+    transform-origin: 0 0;
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
   svg {
-    width: 96%;
-    height: 96%;
-    max-width: 650px;
-    max-height: 750px;
-    filter: drop-shadow(0 8px 20px rgba(0,0,0,0.65));
+    width: 98%;
+    height: 98%;
+    shape-rendering: optimizeSpeed;
   }
+  /* Crisp & Fast State Boundaries */
   svg path {
-    fill: #334155;
-    stroke: #94a3b8;
-    stroke-width: 0.9;
-    transition: fill 0.2s ease;
+    fill: #1e293b;
+    stroke: #cbd5e1;
+    stroke-width: 0.45px;
+    stroke-linejoin: round;
     cursor: pointer;
   }
-  svg path:hover {
-    fill: #475569;
-  }
   svg path.correct {
-    fill: #22c55e !important;
-    stroke: #ffffff;
-    stroke-width: 1.2;
+    fill: #16a34a !important;
+    stroke: #ffffff !important;
+    stroke-width: 0.6px !important;
     pointer-events: none;
   }
   svg path.wrong {
+    fill: #dc2626 !important;
+  }
+  /* Small UT Dots */
+  svg circle.ut-dot {
+    fill: #38bdf8;
+    stroke: #ffffff;
+    stroke-width: 0.8px;
+    cursor: pointer;
+  }
+  svg circle.ut-dot.correct {
+    fill: #22c55e !important;
+    stroke: #ffffff !important;
+    pointer-events: none;
+  }
+  svg circle.ut-dot.wrong {
     fill: #ef4444 !important;
   }
 
-  /* Floating Bottom Watermark */
+  /* Bottom Watermark */
   .bottom-watermark {
     position: absolute;
-    bottom: 14px;
-    left: 14px;
-    background: rgba(15, 23, 42, 0.9);
+    bottom: 12px;
+    left: 12px;
+    background: #0f172a;
     border: 1.5px solid #fbbf24;
     color: #fbbf24;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 16px;
+    font-size: 11px;
     font-weight: 800;
-    letter-spacing: 0.8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.6);
     pointer-events: none;
     z-index: 15;
   }
@@ -208,8 +204,8 @@
   /* Zoom Controls */
   .zoom-controls {
     position: absolute;
-    bottom: 14px;
-    right: 14px;
+    bottom: 12px;
+    right: 12px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -219,7 +215,7 @@
     width: 40px;
     height: 40px;
     border-radius: 10px;
-    background: rgba(30, 41, 59, 0.9);
+    background: #1e293b;
     border: 1px solid #475569;
     color: #f8fafc;
     font-size: 20px;
@@ -227,8 +223,6 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
   }
   .z-btn:active {
     background: #38bdf8;
@@ -238,28 +232,28 @@
   /* Toast Notification */
   #toast {
     position: absolute;
-    top: 14px;
+    top: 10px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(15, 23, 42, 0.95);
-    border: 1px solid #38bdf8;
+    background: #0f172a;
+    border: 1.5px solid #38bdf8;
     color: #fff;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 18px;
+    font-size: 12px;
     font-weight: 700;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.25s;
+    transition: opacity 0.12s;
     z-index: 30;
     white-space: nowrap;
   }
 
-  /* Loading & Win Overlay */
+  /* Win Modal */
   .overlay {
     position: fixed;
     inset: 0;
-    background: rgba(7, 11, 20, 0.92);
+    background: rgba(6, 10, 18, 0.95);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -269,63 +263,55 @@
     text-align: center;
   }
   .win-card {
-    background: linear-gradient(145deg, #1e293b, #0f172a);
+    background: #1e293b;
     border: 2px solid #fbbf24;
-    border-radius: 24px;
-    padding: 28px 22px;
-    max-width: 340px;
+    border-radius: 20px;
+    padding: 24px 20px;
+    max-width: 330px;
     width: 100%;
-    box-shadow: 0 15px 35px rgba(251, 191, 36, 0.25);
   }
   .win-title {
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 900;
     color: #fbbf24;
     margin-bottom: 8px;
   }
   .win-score {
-    font-size: 18px;
+    font-size: 16px;
     color: #e2e8f0;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
   }
   .win-creator {
-    background: rgba(251, 191, 36, 0.15);
-    border: 1px dashed #fbbf24;
+    background: #0f172a;
+    border: 1px solid #fbbf24;
     color: #fde047;
     padding: 8px;
-    border-radius: 12px;
+    border-radius: 10px;
     font-size: 13px;
     font-weight: 800;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
   }
   .action-btn {
     width: 100%;
-    padding: 12px;
-    border-radius: 12px;
+    padding: 11px;
+    border-radius: 10px;
     border: none;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 800;
-    cursor: pointer;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
-  .btn-play {
-    background: #38bdf8;
-    color: #000;
-  }
-  .btn-share {
-    background: #22c55e;
-    color: #fff;
-  }
+  .btn-play { background: #38bdf8; color: #000; }
+  .btn-share { background: #22c55e; color: #fff; }
 </style>
 </head>
 <body>
 
-  <!-- 🌟 SABSE UPAR AAPKA NAAM 🌟 -->
+  <!-- 👑 SABSE UPAR AAPKA NAAM 👑 -->
   <div class="creator-top-banner">
-    👑 GAME DEVELOPED BY: <span>RANJEET SINGH</span>
+    👑 CREATED BY: <span>RANJEET SINGH</span>
   </div>
 
-  <!-- Header Panel -->
+  <!-- Header -->
   <div class="header-panel">
     <div class="top-row">
       <div class="game-title">🇮🇳 INDIA MAP PRO</div>
@@ -344,7 +330,7 @@
     <div class="target-box">
       <div>
         <div class="target-sub">🗺️ TAP ON THIS STATE / UT:</div>
-        <div class="target-state" id="target-name">Loading Map...</div>
+        <div class="target-state" id="target-name">Loading Fast Map...</div>
       </div>
       <button class="skip-btn" onclick="nextQuestion()">Skip ⏭️</button>
     </div>
@@ -354,165 +340,309 @@
   <div class="map-wrapper" id="map-wrapper">
     <div id="toast"></div>
     <div id="map-canvas"></div>
-
-    <!-- Bottom Left Name Badge -->
     <div class="bottom-watermark">⚡ by RANJEET SINGH</div>
 
-    <!-- Zoom Buttons -->
     <div class="zoom-controls">
-      <button class="z-btn" onclick="zoomMap(1.25)">+</button>
-      <button class="z-btn" onclick="zoomMap(0.8)">−</button>
+      <button class="z-btn" onclick="zoomCenter(1.4)">+</button>
+      <button class="z-btn" onclick="zoomCenter(0.7)">−</button>
       <button class="z-btn" onclick="resetZoom()">⟲</button>
     </div>
   </div>
 
-  <!-- End Game Modal -->
+  <!-- Win Modal -->
   <div class="overlay" id="end-overlay" style="display: none;">
     <div class="win-card">
       <div class="win-title">🎉 Champion!</div>
-      <div class="win-score" id="final-score-text">You found all Indian States!</div>
-      <div class="win-creator">👑 Game Created By:<br><b style="font-size:16px; color:#fff;">RANJEET SINGH</b></div>
+      <div class="win-score" id="final-score-text"></div>
+      <div class="win-creator">👑 Game Developed By:<br><b style="font-size:16px; color:#fff;">RANJEET SINGH</b></div>
       <button class="action-btn btn-share" onclick="shareOnWhatsApp()">📲 Share Score on WhatsApp</button>
       <button class="action-btn btn-play" onclick="location.reload()">🔄 Play Again</button>
     </div>
   </div>
 
 <script>
-  let statesList = [];
   let remainingStates = [];
   let currentTarget = null;
   let score = 0;
   let foundCount = 0;
   let totalCount = 0;
 
-  // Zoom & Pan Variables
-  let scale = 1, pointX = 0, pointY = 0, startX = 0, startY = 0, isPanning = false;
+  // Ultra-Smooth 60FPS Matrix Transform Engine
+  let scale = 1, tx = 0, ty = 0;
+  let isDragging = false, startX = 0, startY = 0, moved = false;
+  let pinchDist = 0, startScale = 1, pinchMidX = 0, pinchMidY = 0;
+
   const mapCanvas = document.getElementById('map-canvas');
   const mapWrapper = document.getElementById('map-wrapper');
 
-  function updateTransform() {
-    mapCanvas.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+  function renderTransform() {
+    const svg = mapCanvas.querySelector('svg');
+    if (svg) {
+      // Dynamic stroke adjustment only once per zoom stop for crisp thin lines
+      svg.style.setProperty('--inv-scale', (0.48 / Math.sqrt(scale)).toFixed(2) + 'px');
+    }
+    mapCanvas.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`;
   }
 
-  function zoomMap(factor) {
-    scale = Math.min(Math.max(1, scale * factor), 6);
-    if (scale === 1) { pointX = 0; pointY = 0; }
-    updateTransform();
+  function clampPan() {
+    if (scale <= 1.02) {
+      scale = 1; tx = 0; ty = 0;
+      return;
+    }
+    const rect = mapWrapper.getBoundingClientRect();
+    const maxW = rect.width * (scale - 1);
+    const maxH = rect.height * (scale - 1);
+    tx = Math.min(rect.width * 0.25, Math.max(-maxW - rect.width * 0.25, tx));
+    ty = Math.min(rect.height * 0.25, Math.max(-maxH - rect.height * 0.25, ty));
+  }
+
+  function zoomAtPoint(newScale, cx, cy) {
+    newScale = Math.min(Math.max(1, newScale), 7);
+    const ratio = newScale / scale;
+    tx = cx - (cx - tx) * ratio;
+    ty = cy - (cy - ty) * ratio;
+    scale = newScale;
+    clampPan();
+    renderTransform();
+  }
+
+  function zoomCenter(factor) {
+    const rect = mapWrapper.getBoundingClientRect();
+    zoomAtPoint(scale * factor, rect.width / 2, rect.height / 2);
   }
 
   function resetZoom() {
-    scale = 1; pointX = 0; pointY = 0;
-    updateTransform();
+    scale = 1; tx = 0; ty = 0;
+    renderTransform();
   }
 
-  // Touch Drag Support for Mobile
-  mapWrapper.addEventListener('pointerdown', (e) => {
+  // Zero-Latency Touch Events
+  mapWrapper.addEventListener('touchstart', (e) => {
     if (e.target.closest('.zoom-controls')) return;
-    isPanning = true;
-    startX = e.clientX - pointX;
-    startY = e.clientY - pointY;
-  });
-  mapWrapper.addEventListener('pointermove', (e) => {
-    if (!isPanning || scale === 1) return;
-    pointX = e.clientX - startX;
-    pointY = e.clientY - startY;
-    updateTransform();
-  });
-  window.addEventListener('pointerup', () => { isPanning = false; });
+    if (e.touches.length === 1) {
+      isDragging = true;
+      moved = false;
+      startX = e.touches[0].clientX - tx;
+      startY = e.touches[0].clientY - ty;
+    } else if (e.touches.length === 2) {
+      isDragging = false;
+      moved = true;
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      pinchDist = Math.hypot(dx, dy);
+      startScale = scale;
+      const rect = mapWrapper.getBoundingClientRect();
+      pinchMidX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left;
+      pinchMidY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
+    }
+  }, { passive: true });
 
-  function showToast(msg, color = "#38bdf8") {
+  mapWrapper.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 1 && isDragging) {
+      const nx = e.touches[0].clientX - startX;
+      const ny = e.touches[0].clientY - startY;
+      if (Math.hypot(nx - tx, ny - ty) > 5) moved = true;
+      if (scale > 1) {
+        tx = nx;
+        ty = ny;
+        clampPan();
+        mapCanvas.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`;
+      }
+    } else if (e.touches.length === 2 && pinchDist > 0) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      zoomAtPoint(startScale * (dist / pinchDist), pinchMidX, pinchMidY);
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchend', () => {
+    isDragging = false;
+    pinchDist = 0;
+  });
+
+  let toastTimer = null;
+  function showToast(msg, color) {
     const t = document.getElementById('toast');
     t.textContent = msg;
     t.style.borderColor = color;
     t.style.opacity = "1";
-    setTimeout(() => { t.style.opacity = "0"; }, 1400);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.style.opacity = "0"; }, 1000);
   }
 
-  // Load High-Accuracy India SVG Map
-  const svgUrls = [
-    "https://cdn.jsdelivr.net/gh/svg-maps/india@master/india.svg",
-    "https://unpkg.com/@svg-maps/india@1.0.1/india.svg"
+  // Official Updated Map Sources (J&K and Ladakh Separate + Accurate Boundaries)
+  const mapSources = [
+    "https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson",
+    "https://raw.githubusercontent.com/Subhash9325/GeoJson-Data-of-Indian-States/master/Indian_States"
   ];
 
-  async function loadIndiaMap() {
-    for (let url of svgUrls) {
-      try {
-        const res = await fetch(url);
-        if (res.ok) {
-          const svgText = await res.text();
-          mapCanvas.innerHTML = svgText;
-          setupGame();
-          return;
-        }
-      } catch (err) {}
-    }
-    document.getElementById('target-name').textContent = "Check Internet to Load Map";
+  // Clear Tap Dots for Small Union Territories
+  const utDots = [
+    { name: "Chandigarh", lon: 76.78, lat: 30.73 },
+    { name: "Delhi", lon: 77.10, lat: 28.65 },
+    { name: "Puducherry", lon: 79.81, lat: 11.94 },
+    { name: "Lakshadweep", lon: 72.64, lat: 10.57 },
+    { name: "Dadra and Nagar Haveli and Daman and Diu", lon: 72.84, lat: 20.40 }
+  ];
+
+  function project(lon, lat) {
+    const x = (lon - 67.8) * 18.2;
+    const y = (37.6 - lat) * 18.8;
+    return [x, y];
   }
 
-  function setupGame() {
-    const paths = mapCanvas.querySelectorAll('svg path');
-    statesList = [];
-
-    paths.forEach((p) => {
-      const name = p.getAttribute('name') || p.getAttribute('title') || p.id;
-      if (name) {
-        p.dataset.stateName = name;
-        statesList.push(name);
-        p.addEventListener('click', (e) => {
-          e.stopPropagation();
-          onStateClick(p, name);
-        });
+  // High-Speed Path Builder (Filters microscopic sub-pixel jitter for 60FPS speed while keeping sharp borders)
+  function buildFastCrispPath(geom) {
+    let d = "";
+    const polys = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
+    for (let p = 0; p < polys.length; p++) {
+      const rings = polys[p];
+      for (let r = 0; r < rings.length; r++) {
+        const ring = rings[r];
+        let lastX = -9999, lastY = -9999, count = 0;
+        let ringStr = "";
+        for (let i = 0; i < ring.length; i++) {
+          const [x, y] = project(ring[i][0], ring[i][1]);
+          // Keep start/end points and filter points closer than 0.65px for zero lag
+          if (i === 0 || i === ring.length - 1 || Math.hypot(x - lastX, y - lastY) >= 0.65) {
+            ringStr += (count === 0 ? "M" : "L") + x.toFixed(1) + "," + y.toFixed(1);
+            lastX = x; lastY = y;
+            count++;
+          }
+        }
+        if (count > 2) d += ringStr + "Z";
       }
+    }
+    return d;
+  }
+
+  async function initMap() {
+    for (const url of mapSources) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) continue;
+        const geojson = await res.json();
+        renderGeoJson(geojson);
+        return;
+      } catch (err) {}
+    }
+    document.getElementById('target-name').textContent = "Check Internet & Refresh";
+  }
+
+  function renderGeoJson(geojson) {
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("viewBox", "0 0 545 585");
+
+    const stateSet = new Set();
+    const stateMap = new Map();
+
+    geojson.features.forEach((f) => {
+      let name = f.properties.ST_NM || f.properties.NAME_1 || f.properties.name;
+      if (!name) return;
+
+      if (name.includes("Andaman")) name = "Andaman and Nicobar Islands";
+      if (name.includes("Dadra") || name.includes("Daman")) name = "Dadra and Nagar Haveli and Daman and Diu";
+      if (name === "NCT of Delhi") name = "Delhi";
+      if (name === "Orissa") name = "Odisha";
+      if (name === "Uttaranchal") name = "Uttarakhand";
+
+      const pathData = buildFastCrispPath(f.geometry);
+      if (!pathData) return;
+
+      const path = document.createElementNS(svgNS, "path");
+      path.setAttribute("d", pathData);
+
+      path.addEventListener('click', (e) => {
+        if (moved) return;
+        e.stopPropagation();
+        checkAnswer(name);
+      });
+
+      svg.appendChild(path);
+      stateSet.add(name);
+      if (!stateMap.has(name)) stateMap.set(name, []);
+      stateMap.get(name).push(path);
     });
 
-    totalCount = statesList.length;
-    remainingStates = [...statesList];
-    updateStats();
+    // Add Easy-Tap Dots for Small UTs
+    utDots.forEach((ut) => {
+      const [cx, cy] = project(ut.lon, ut.lat);
+      const dot = document.createElementNS(svgNS, "circle");
+      dot.setAttribute("cx", cx.toFixed(1));
+      dot.setAttribute("cy", cy.toFixed(1));
+      dot.setAttribute("r", "4.8");
+      dot.setAttribute("class", "ut-dot");
+
+      dot.addEventListener('click', (e) => {
+        if (moved) return;
+        e.stopPropagation();
+        checkAnswer(ut.name);
+      });
+
+      svg.appendChild(dot);
+      stateSet.add(ut.name);
+      if (!stateMap.has(ut.name)) stateMap.set(ut.name, []);
+      stateMap.get(ut.name).push(dot);
+    });
+
+    mapCanvas.innerHTML = "";
+    mapCanvas.appendChild(svg);
+    window.stateMap = stateMap;
+
+    remainingStates = Array.from(stateSet);
+    totalCount = remainingStates.length;
+    updateUI();
     nextQuestion();
+  }
+
+  function checkAnswer(selectedName) {
+    if (!currentTarget) return;
+    const elems = window.stateMap.get(selectedName) || [];
+    if (elems[0] && elems[0].classList.contains('correct')) return;
+
+    if (selectedName === currentTarget) {
+      elems.forEach(el => el.classList.add('correct'));
+      score += 10;
+      foundCount++;
+      remainingStates = remainingStates.filter(s => s !== currentTarget);
+      showToast(`✅ Correct! ${selectedName} (+10)`, "#22c55e");
+      updateUI();
+      nextQuestion();
+    } else {
+      elems.forEach(el => el.classList.add('wrong'));
+      score = Math.max(0, score - 2);
+      showToast(`❌ That is ${selectedName} (-2)`, "#ef4444");
+      updateUI();
+      setTimeout(() => {
+        elems.forEach(el => el.classList.remove('wrong'));
+      }, 400);
+    }
   }
 
   function nextQuestion() {
     if (remainingStates.length === 0) {
-      document.getElementById('final-score-text').textContent = `Final Score: ${score} | Found: ${foundCount}/${totalCount}`;
+      document.getElementById('final-score-text').textContent = `Score: ${score} | Found: ${foundCount}/${totalCount}`;
       document.getElementById('end-overlay').style.display = 'flex';
       return;
     }
-    const randIndex = Math.floor(Math.random() * remainingStates.length);
-    currentTarget = remainingStates[randIndex];
+    const r = Math.floor(Math.random() * remainingStates.length);
+    currentTarget = remainingStates[r];
     document.getElementById('target-name').textContent = currentTarget;
   }
 
-  function onStateClick(pathElem, clickedName) {
-    if (!currentTarget || pathElem.classList.contains('correct')) return;
-
-    if (clickedName === currentTarget) {
-      pathElem.classList.add('correct');
-      score += 10;
-      foundCount++;
-      remainingStates = remainingStates.filter(s => s !== currentTarget);
-      showToast(`✅ Correct! ${clickedName} (+10)`, "#22c55e");
-      updateStats();
-      nextQuestion();
-    } else {
-      pathElem.classList.add('wrong');
-      score = Math.max(0, score - 2);
-      showToast(`❌ That is ${clickedName} (-2)`, "#ef4444");
-      updateStats();
-      setTimeout(() => pathElem.classList.remove('wrong'), 600);
-    }
-  }
-
-  function updateStats() {
+  function updateUI() {
     document.getElementById('found-val').textContent = `${foundCount}/${totalCount}`;
     document.getElementById('score-val').textContent = score;
   }
 
   function shareOnWhatsApp() {
-    const text = `🇮🇳 *INDIA MAP PRO (By RANJEET SINGH)* 🗺️\n\nMaine is game mein *${score} Score* banaya! Kya aap mujhe hara sakte hain?\n\n👇 *Abhi khelne ke liye link par click karein:*\n${window.location.href}`;
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+    const msg = `🇮🇳 *INDIA MAP PRO (By RANJEET SINGH)* 🗺️\n\nMaine is game mein *${score} Score* banaya (${foundCount}/${totalCount} States)! Kya aap mujhe hara sakte hain?\n\n👇 *Abhi khelne ke liye link par click karein:*\n${window.location.href}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
   }
 
-  loadIndiaMap();
+  initMap();
 </script>
 </body>
 </html>
