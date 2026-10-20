@@ -65,7 +65,7 @@
     margin-bottom: 6px;
   }
   .game-title {
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 900;
     color: #38bdf8;
     letter-spacing: 0.5px;
@@ -80,7 +80,7 @@
     border-radius: 8px;
     padding: 3px 10px;
     text-align: center;
-    min-width: 72px;
+    min-width: 68px;
   }
   .stat-label {
     font-size: 9px;
@@ -93,15 +93,20 @@
     color: #4ade80;
   }
 
-  /* Target Box */
+  /* Target Box with Hint & Skip Buttons */
   .target-box {
     background: #172554;
     border: 1.5px solid #38bdf8;
     border-radius: 10px;
-    padding: 7px 12px;
+    padding: 7px 10px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
+  }
+  .target-info {
+    flex: 1;
+    min-width: 0;
   }
   .target-sub {
     font-size: 9px;
@@ -110,22 +115,41 @@
     font-weight: 700;
   }
   .target-state {
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 900;
     color: #fbbf24;
     margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .btn-group {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .hint-btn {
+    background: #f59e0b;
+    border: 1px solid #fde047;
+    color: #000;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
   }
   .skip-btn {
     background: #1e3a8a;
     border: 1px solid #60a5fa;
     color: #fff;
-    padding: 6px 12px;
+    padding: 6px 10px;
     border-radius: 8px;
     font-size: 12px;
     font-weight: 700;
+    cursor: pointer;
   }
-  .skip-btn:active {
-    opacity: 0.7;
+  .hint-btn:active, .skip-btn:active {
+    transform: scale(0.94);
   }
 
   /* Map Container - Pure GPU Layer */
@@ -169,6 +193,13 @@
   svg path.wrong {
     fill: #dc2626 !important;
   }
+  /* 💡 HINT HIGHLIGHT EFFECT 💡 */
+  svg path.hint-glow {
+    fill: #facc15 !important;
+    stroke: #ffffff !important;
+    stroke-width: 1px !important;
+  }
+
   /* Small UT Dots */
   svg circle.ut-dot {
     fill: #38bdf8;
@@ -183,6 +214,12 @@
   }
   svg circle.ut-dot.wrong {
     fill: #ef4444 !important;
+  }
+  svg circle.ut-dot.hint-glow {
+    fill: #facc15 !important;
+    stroke: #ff0000 !important;
+    stroke-width: 1.5px !important;
+    r: 7.5px !important;
   }
 
   /* Bottom Watermark */
@@ -328,11 +365,14 @@
     </div>
 
     <div class="target-box">
-      <div>
+      <div class="target-info">
         <div class="target-sub">🗺️ TAP ON THIS STATE / UT:</div>
         <div class="target-state" id="target-name">Loading Fast Map...</div>
       </div>
-      <button class="skip-btn" onclick="nextQuestion()">Skip ⏭️</button>
+      <div class="btn-group">
+        <button class="hint-btn" onclick="useHint()">💡 Hint</button>
+        <button class="skip-btn" onclick="nextQuestion()">Skip ⏭️</button>
+      </div>
     </div>
   </div>
 
@@ -366,6 +406,7 @@
   let score = 0;
   let foundCount = 0;
   let totalCount = 0;
+  let hintTimer = null;
 
   // Ultra-Smooth 60FPS Matrix Transform Engine
   let scale = 1, tx = 0, ty = 0;
@@ -376,11 +417,6 @@
   const mapWrapper = document.getElementById('map-wrapper');
 
   function renderTransform() {
-    const svg = mapCanvas.querySelector('svg');
-    if (svg) {
-      // Dynamic stroke adjustment only once per zoom stop for crisp thin lines
-      svg.style.setProperty('--inv-scale', (0.48 / Math.sqrt(scale)).toFixed(2) + 'px');
-    }
     mapCanvas.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`;
   }
 
@@ -468,7 +504,7 @@
     t.style.borderColor = color;
     t.style.opacity = "1";
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { t.style.opacity = "0"; }, 1000);
+    toastTimer = setTimeout(() => { t.style.opacity = "0"; }, 1200);
   }
 
   // Official Updated Map Sources (J&K and Ladakh Separate + Accurate Boundaries)
@@ -492,7 +528,7 @@
     return [x, y];
   }
 
-  // High-Speed Path Builder (Filters microscopic sub-pixel jitter for 60FPS speed while keeping sharp borders)
+  // High-Speed Path Builder
   function buildFastCrispPath(geom) {
     let d = "";
     const polys = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
@@ -504,7 +540,6 @@
         let ringStr = "";
         for (let i = 0; i < ring.length; i++) {
           const [x, y] = project(ring[i][0], ring[i][1]);
-          // Keep start/end points and filter points closer than 0.65px for zero lag
           if (i === 0 || i === ring.length - 1 || Math.hypot(x - lastX, y - lastY) >= 0.65) {
             ringStr += (count === 0 ? "M" : "L") + x.toFixed(1) + "," + y.toFixed(1);
             lastX = x; lastY = y;
@@ -597,12 +632,47 @@
     nextQuestion();
   }
 
+  // 💡 HINT FUNCTION: Flashes the target state in Golden Yellow 💡
+  function useHint() {
+    if (!currentTarget || !window.stateMap) return;
+    const elems = window.stateMap.get(currentTarget) || [];
+    if (elems.length === 0) return;
+
+    score = Math.max(0, score - 3);
+    updateUI();
+    showToast(`💡 Hint: Look at the Yellow Highlight! (-3)`, "#facc15");
+
+    clearTimeout(hintTimer);
+    let blinks = 0;
+    function blinkState() {
+      const isGlowing = blinks % 2 === 0;
+      elems.forEach(el => {
+        if (isGlowing) el.classList.add('hint-glow');
+        else el.classList.remove('hint-glow');
+      });
+      blinks++;
+      if (blinks < 6) {
+        hintTimer = setTimeout(blinkState, 280);
+      } else {
+        elems.forEach(el => el.classList.remove('hint-glow'));
+      }
+    }
+    blinkState();
+  }
+
+  function clearAllHints() {
+    clearTimeout(hintTimer);
+    const glowing = mapCanvas.querySelectorAll('.hint-glow');
+    glowing.forEach(el => el.classList.remove('hint-glow'));
+  }
+
   function checkAnswer(selectedName) {
     if (!currentTarget) return;
     const elems = window.stateMap.get(selectedName) || [];
     if (elems[0] && elems[0].classList.contains('correct')) return;
 
     if (selectedName === currentTarget) {
+      clearAllHints();
       elems.forEach(el => el.classList.add('correct'));
       score += 10;
       foundCount++;
@@ -622,6 +692,7 @@
   }
 
   function nextQuestion() {
+    clearAllHints();
     if (remainingStates.length === 0) {
       document.getElementById('final-score-text').textContent = `Score: ${score} | Found: ${foundCount}/${totalCount}`;
       document.getElementById('end-overlay').style.display = 'flex';
