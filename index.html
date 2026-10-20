@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -218,7 +218,7 @@
     stroke-width: 1.4px !important;
   }
 
-  /* Small UT & Special Region Dots */
+  /* Small UT Dots */
   svg circle.ut-dot {
     fill: #38bdf8;
     stroke: #ffffff;
@@ -723,7 +723,7 @@
   }
 
   /* =========================================================
-     🗺️ ULTRA-FAST RELIABLE INDIA SVG + J&K / LADAKH SPLIT 🗺️
+     🗺️ NATURAL ORGANIC J&K AND LADAKH BORDER SPLIT 🗺️
      ========================================================= */
   const fastSvgUrls = [
     "https://cdn.jsdelivr.net/npm/@svg-maps/india@1.0.1/india.svg",
@@ -752,7 +752,7 @@
           const svgText = await res.text();
           if (svgText.includes("<svg")) {
             mapCanvas.innerHTML = svgText;
-            enhanceMapWithLadakhSplit();
+            enhanceMapWithNaturalLadakhSplit();
             return;
           }
         }
@@ -761,12 +761,11 @@
     document.getElementById('target-name').textContent = "Tap Skip or Reload Page";
   }
 
-  function enhanceMapWithLadakhSplit() {
+  function enhanceMapWithNaturalLadakhSplit() {
     const svg = mapCanvas.querySelector('svg');
     if (!svg) return;
     const svgNS = "http://www.w3.org/2000/svg";
 
-    // Create crisp SVG clipPaths to split J&K (West) and Ladakh (North-East) accurately
     const jkPath = svg.querySelector('#in-jk, [name="Jammu and Kashmir"]');
     const stateSet = new Set();
     const stateMap = new Map();
@@ -784,47 +783,85 @@
 
     if (jkPath) {
       const dOrig = jkPath.getAttribute('d');
-      const bbox = jkPath.getBBox();
-      const splitX = bbox.x + bbox.width * 0.44;
-      const splitY = bbox.y + bbox.height * 0.42;
+      const b = jkPath.getBBox();
 
-      const defs = document.createElementNS(svgNS, "defs");
+      // Helper to map relative percentage coordinates onto J&K bounding box
+      const pt = (rx, ry) => `${(b.x + b.width * rx).toFixed(1)},${(b.y + b.height * ry).toFixed(1)}`;
 
-      // Clip for Jammu & Kashmir (South-West half)
+      // 17-Point Natural Mountainous Border (From Western LOC -> Kargil/Zoji La -> Zanskar -> Himachal Border)
+      const naturalCurve = [
+        [-0.05, 0.44],
+        [0.10, 0.45],
+        [0.16, 0.43],
+        [0.22, 0.44],
+        [0.27, 0.47],
+        [0.31, 0.45],
+        [0.35, 0.48],
+        [0.37, 0.53],
+        [0.35, 0.58],
+        [0.38, 0.63],
+        [0.41, 0.67],
+        [0.39, 0.72],
+        [0.43, 0.77],
+        [0.46, 0.82],
+        [0.44, 0.88],
+        [0.47, 0.94],
+        [0.49, 1.05]
+      ];
+
+      const curvePointsStr = naturalCurve.map(([rx, ry]) => pt(rx, ry)).join(" ");
+
+      letdefs = svg.querySelector('defs');
+      if (!letdefs) {
+        letdefs = document.createElementNS(svgNS, "defs");
+        svg.insertBefore(letdefs, svg.firstChild);
+      }
+
+      // Clip for Jammu & Kashmir (South-West Valley + Jammu Region)
       const clipJK = document.createElementNS(svgNS, "clipPath");
-      clipJK.setAttribute("id", "clip-jk");
+      clipJK.setAttribute("id", "clip-jk-nat");
       const polyJK = document.createElementNS(svgNS, "polygon");
-      polyJK.setAttribute("points", `${bbox.x - 10},${splitY - 12} ${splitX},${splitY - 12} ${splitX + 10},${bbox.y + bbox.height + 10} ${bbox.x - 10},${bbox.y + bbox.height + 10}`);
+      polyJK.setAttribute("points", `${curvePointsStr} ${pt(-0.1, 1.1)} ${pt(-0.1, 0.44)}`);
       clipJK.appendChild(polyJK);
 
-      // Clip for Ladakh (North & East half)
+      // Clip for Ladakh (Gilgit-Baltistan + Kargil + Leh + Aksai Chin)
       const clipLA = document.createElementNS(svgNS, "clipPath");
-      clipLA.setAttribute("id", "clip-la");
+      clipLA.setAttribute("id", "clip-la-nat");
       const polyLA = document.createElementNS(svgNS, "polygon");
-      polyLA.setAttribute("points", `${bbox.x - 10},${bbox.y - 10} ${bbox.x + bbox.width + 20},${bbox.y - 10} ${bbox.x + bbox.width + 20},${bbox.y + bbox.height + 10} ${splitX + 10},${bbox.y + bbox.height + 10} ${splitX},${splitY - 12} ${bbox.x - 10},${splitY - 12}`);
+      polyLA.setAttribute("points", `${curvePointsStr} ${pt(1.1, 1.1)} ${pt(1.1, -0.1)} ${pt(-0.1, -0.1)}`);
       clipLA.appendChild(polyLA);
 
-      defs.appendChild(clipJK);
-      defs.appendChild(clipLA);
-      svg.insertBefore(defs, svg.firstChild);
+      // Clip to keep the internal divider line strictly inside the outer J&K boundary
+      const clipInsideMain = document.createElementNS(svgNS, "clipPath");
+      clipInsideMain.setAttribute("id", "clip-inside-jk");
+      const innerClone = document.createElementNS(svgNS, "path");
+      innerClone.setAttribute("d", dOrig);
+      clipInsideMain.appendChild(innerClone);
+
+      letdefs.appendChild(clipJK);
+      letdefs.appendChild(clipLA);
+      letdefs.appendChild(clipInsideMain);
 
       // Create Ladakh Path
       const ladakhPath = document.createElementNS(svgNS, "path");
       ladakhPath.setAttribute("d", dOrig);
-      ladakhPath.setAttribute("clip-path", "url(#clip-la)");
+      ladakhPath.setAttribute("clip-path", "url(#clip-la-nat)");
       jkPath.parentNode.insertBefore(ladakhPath, jkPath.nextSibling);
 
       // Clip J&K Path
-      jkPath.setAttribute("clip-path", "url(#clip-jk)");
+      jkPath.setAttribute("clip-path", "url(#clip-jk-nat)");
 
-      // Draw crisp border line between J&K and Ladakh
-      const borderLine = document.createElementNS(svgNS, "polyline");
-      borderLine.setAttribute("points", `${bbox.x + 14},${splitY - 10} ${splitX},${splitY - 10} ${splitX + 8},${bbox.y + bbox.height - 6}`);
-      borderLine.setAttribute("fill", "none");
-      borderLine.setAttribute("stroke", "#cbd5e1");
-      borderLine.setAttribute("stroke-width", "1.1");
-      borderLine.setAttribute("pointer-events", "none");
-      jkPath.parentNode.insertBefore(borderLine, ladakhPath.nextSibling);
+      // Draw Natural Organic Border Line clipped strictly inside J&K outer border
+      const borderPath = document.createElementNS(svgNS, "polyline");
+      borderPath.setAttribute("points", curvePointsStr);
+      borderPath.setAttribute("clip-path", "url(#clip-inside-jk)");
+      borderPath.setAttribute("fill", "none");
+      borderPath.setAttribute("stroke", "#94a3b8");
+      borderPath.setAttribute("stroke-width", "0.85");
+      borderPath.setAttribute("stroke-linejoin", "round");
+      borderPath.setAttribute("stroke-linecap", "round");
+      borderPath.setAttribute("pointer-events", "none");
+      jkPath.parentNode.insertBefore(borderPath, ladakhPath.nextSibling);
 
       registerElement("Jammu and Kashmir", jkPath);
       registerElement("Ladakh", ladakhPath);
@@ -833,7 +870,7 @@
     // Register all other States & UTs
     const allPaths = svg.querySelectorAll('path');
     allPaths.forEach((p) => {
-      if (p === jkPath || p.getAttribute('clip-path') === 'url(#clip-la)') return;
+      if (p === jkPath || p.getAttribute('clip-path') === 'url(#clip-la-nat)' || p.closest('defs')) return;
       let name = p.getAttribute('name') || p.getAttribute('title') || p.id;
       if (!name) return;
 
@@ -845,7 +882,7 @@
 
       registerElement(name, p);
 
-      // Add easy-tap dot for tiny UTs so mobile players can tap effortlessly
+      // Add easy-tap dot for tiny UTs
       const tinyUTs = ["Chandigarh", "Delhi", "Puducherry", "Lakshadweep", "Dadra and Nagar Haveli and Daman and Diu"];
       if (tinyUTs.includes(name)) {
         try {
@@ -986,5 +1023,3 @@
 </script>
 </body>
 </html>
-
- 
